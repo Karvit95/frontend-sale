@@ -1,0 +1,286 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #f3f2f1;
+  font-family: sans-serif;
+}
+
+#root {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* --- STRUTTURA PRINCIPALE --- */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f3f2f1;
+}
+
+.main-content {
+  flex-grow: 1;
+  margin-left: 280px;
+  padding: 30px;
+  box-sizing: border-box;
+  width: calc(100% - 280px);
+}
+
+.fullscreen-message {
+  padding: 2rem;
+  text-align: center;
+}
+
+/* --- CALENDARIO E CONTROLLI --- */
+.calendar-card {
+  background-color: white;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.controls-header {
+  margin-bottom: 25px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.badge-globale {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #0078D4;
+  background-color: #f3f2f1;
+  padding: 8px 15px;
+  border-radius: 6px;
+}
+
+.btn-outline {
+  padding: 10px 15px;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+  cursor: pointer;
+  font-weight: bold;
+  color: #323130;
+}
+
+.btn-outline:hover {
+  background-color: #f3f2f1;
+}
+
+.input-label {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #323130;
+}
+
+.select-sala {
+  padding: 10px 15px;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  min-width: 280px;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.text-loading {
+  color: #0078D4;
+  font-weight: bold;
+  margin-left: 10px;
+}
+
+.text-error {
+  color: #d13438;
+}
+
+/* --- SCHERMATA LOGIN --- */
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.login-card {
+  background-color: #ffffff;
+  padding: 40px 50px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.login-logo-placeholder {
+  width: 80px;
+  height: 80px;
+  background-color: #0078D4;
+  border-radius: 50%;
+  margin: 0 auto 20px auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+}
+
+.login-title {
+  color: #323130;
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+}
+
+.login-subtitle {
+  color: #605e5c;
+  margin-bottom: 30px;
+  font-size: 0.95rem;
+}
+
+.login-button {
+  width: 100%;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  background-color: #0078D4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.login-button:hover {
+  background-color: #005a9e;
+}
+
+/* --- HEADER DASHBOARD --- */
+.header-container {
+  margin-bottom: 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-greeting {
+  margin: 0;
+  color: #323130;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.header-date {
+  margin: 5px 0 0 0;
+  color: #605e5c;
+  font-size: 1rem;
+  text-transform: capitalize;
+}
+
+/* --- MODALI E FORM (FormPrenotazione & DettaglioPrenotazione) --- */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  backdrop-filter: blur(2px); /* Leggero effetto sfocato sullo sfondo */
+}
+
+.modal-content {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  z-index: 1001;
+  width: 450px;
+  max-width: 90%;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2); /* Ombra più profonda */
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.modal-title {
+  margin: 0;
+  color: #323130;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #605e5c;
+  transition: color 0.2s;
+}
+
+.btn-close:hover {
+  color: #d13438;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #323130;
+  font-size: 0.95rem;
+}
+
+.form-input, .form-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #8a8886; /* Bordi degli input più marcati */
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 1rem;
+  transition: border-color 0.2s;
+}
+
+.form-input:focus, .form-select:focus {
+  border-color: #0078D4;
+  outline: 1px solid #0078D4;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+}
+
+.btn-primary, .btn-danger {
+  width: 100%;
+  margin-top: 15px;
+  padding: 12px;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-primary { background-color: #0078D4; }
+.btn-primary:hover { background-color: #005a9e; }
+
+.btn-danger { background-color: #d13438; }
+.btn-danger:hover { background-color: #a4262c; }

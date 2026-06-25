@@ -1,0 +1,144 @@
+/* src/components/Sidebar.css */
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  background-color: #faf9f8; /* Colore di base Fluent UI per i menu laterali */
+  border-right: 1px solid #e1dfdd; /* Bordo sottile ed elegante */
+  z-index: 100;
+  padding: 30px 20px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.sidebar-header {
+  margin-bottom: 35px;
+}
+
+.sidebar-title {
+  margin: 0 0 5px 0;
+  color: #323130;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.sidebar-subtitle {
+  margin: 0;
+  color: #605e5c;
+  font-size: 0.85rem;
+}
+
+/* --- NUOVA CARD UTENTE --- */
+.user-profile-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+  padding: 12px;
+  background-color: #ffffff;
+  border: 1px solid #e1dfdd;
+  border-radius: 8px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  background-color: #0078D4;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.user-info p {
+  margin: 0;
+}
+
+.user-name {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #323130;
+}
+
+.user-role {
+  font-size: 0.8rem;
+  color: #605e5c;
+}
+
+/* --- BOTTONI MENU NAVIGAZIONE --- */
+.bottone-menu {
+  width: 100%;
+  padding: 10px 15px;
+  margin-bottom: 8px;
+  text-align: left;
+  background-color: transparent;
+  color: #323130;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bottone-menu:hover {
+  background-color: #edebe9;
+}
+
+/* Stato Attivo (es. quando sei sul Tabellone) */
+.bottone-menu.attivo {
+  background-color: #edebe9;
+  color: #0078D4;
+  font-weight: 600;
+  border-left: 3px solid #0078D4;
+  border-radius: 0 4px 4px 0; /* Piatto a sinistra, arrotondato a destra */
+}
+
+/* Bottone Blu Primario */
+.bottone-menu.primario {
+  background-color: #0078D4;
+  color: white;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 12px 15px;
+  font-weight: 600;
+  border-radius: 4px;
+}
+
+.bottone-menu.primario:hover {
+  background-color: #005a9e;
+}
+
+/* --- BOTTONE LOGOUT --- */
+.bottone-logout {
+  width: 100%;
+  padding: 10px 15px;
+  text-align: left;
+  background-color: transparent;
+  color: #605e5c; /* Grigio neutro di base */
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Diventa rosso e cambia sfondo solo al passaggio del mouse */
+.bottone-logout:hover {
+  background-color: #fdf3f4;
+  color: #d13438; 
+}

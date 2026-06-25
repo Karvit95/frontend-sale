@@ -1,0 +1,126 @@
+/* Correzione linee verticali mancanti nella vista Agenda (già presente) */
+.rbc-agenda-view .rbc-agenda-time-cell,
+.rbc-agenda-view .rbc-agenda-event-cell {
+  border-left: 1px solid #ddd !important;
+}
+
+/* --- SELETTORI E INPUT (TENDINE MESE/ANNO) --- */
+.toolbar-select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #d1d1d1;
+  font-size: 0.95rem;
+  cursor: pointer;
+  background-color: white;
+  color: #323130;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.toolbar-select:hover, .toolbar-select:focus {
+  border-color: #0078D4;
+}
+
+/* --- BOTTONI GHOST PER LA TABELLA (Meno rumore visivo) --- */
+.btn-ghost-primary, .btn-ghost-danger {
+  padding: 6px 12px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.btn-ghost-primary {
+  color: #0078D4;
+}
+
+.btn-ghost-primary:hover {
+  background-color: #f3f2f1;
+  border-color: #0078D4;
+}
+
+.btn-ghost-danger {
+  color: #d13438;
+}
+
+.btn-ghost-danger:hover {
+  background-color: #fdf3f4;
+  border-color: #d13438;
+}
+
+/* Variante compatta per la vista giornaliera (blocchetti piccoli) */
+.btn-ghost-sm {
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.8); /* Sfondo semi-trasparente per leggibilità sul blocco azzurro */
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn-ghost-sm:hover {
+  background-color: #ffffff;
+}
+
+/* --- STRUTTURA EVENTI IN AGENDA --- */
+.agenda-event-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.agenda-event-title {
+  font-weight: 600;
+  color: #323130;
+  word-break: break-word;
+  margin-right: 20px;
+}
+
+.agenda-event-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* --- MIGLIORAMENTO CONTRASTO TABELLA AGENDA (EXTRA SCURO) --- */
+
+/* Bordi generali della tabella (il contorno esterno) */
+.rbc-agenda-view table.rbc-agenda-table {
+  border: 1px solid #605e5c !important; 
+}
+
+/* Bordi inferiori delle righe (linee orizzontali) */
+.rbc-agenda-view table.rbc-agenda-table tbody > tr > td {
+  border-bottom: 1px solid #8a8886 !important;
+  color: #323130; 
+}
+
+/* Linee verticali (separatori tra Data, Orario e Riunione) */
+.rbc-agenda-view .rbc-agenda-time-cell,
+.rbc-agenda-view .rbc-agenda-event-cell {
+  border-left: 1px solid #8a8886 !important;
+}
+
+/* Intestazione della tabella marcata (Data, Orario, Riunione) */
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th {
+  border-bottom: 2px solid #323130 !important; /* Linea nera netta sotto l'intestazione */
+  background-color: #edebe9; /* Sfondo leggermente più scuro per staccare dal bianco */
+  padding: 12px 10px;
+  color: #323130;
+  font-weight: bold;
+  border-left: 1px solid #8a8886 !important; /* Aggiunge i separatori anche nell'intestazione */
+}
+
+/* Rimuove la doppia riga a sinistra della primissima cella dell'intestazione */
+.rbc-agenda-view table.rbc-agenda-table thead > tr > th:first-child {
+  border-left: none !important;
+}
