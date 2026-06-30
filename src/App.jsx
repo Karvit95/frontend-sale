@@ -13,6 +13,13 @@ function App() {
   const { instance, accounts, inProgress } = useMsal();
   
   const [sale, setSale] = useState([]);
+  const [notifica, setNotifica] = useState(null);
+  
+  const mostraNotifica = (messaggio, tipo = "error") => {
+    setNotifica({ messaggio, tipo });
+    setTimeout(() => setNotifica(null), 5000);
+  };
+  
   const [salaSelezionata, setSalaSelezionata] = useState(""); 
   const [dataCorrente, setDataCorrente] = useState(new Date());
   const [loading, setLoading] = useState(false);
@@ -30,9 +37,22 @@ function App() {
   const handleLogin = () => instance.loginRedirect(loginRequest).catch(e => console.error(e));
   const handleLogout = () => instance.logoutRedirect().catch(e => console.error(e));
 
+  const ottieniToken = async () => {
+    try {
+      return await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
+    } catch (error) {
+      console.warn("Token silent failed, tentativo con popup:", error);
+      try {
+        return await instance.acquireTokenPopup({ ...loginRequest, account: accounts[0] });
+      } catch (popupError) {
+        throw popupError;
+      }
+    }
+  };
+
   const handleSalvaPrenotazione = async (payload, idEventoDaModificare) => {
     try {
-      const response = await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
+      const response = await ottieniToken();
       
       if (idEventoDaModificare) {
         await api.modificaPrenotazione(response.accessToken, idEventoDaModificare, payload);
@@ -43,8 +63,9 @@ function App() {
       setTriggerAggiornamento(prev => prev + 1); 
       setFormAperto(false); 
       setEventoInModifica(null); 
+      mostraNotifica("Prenotazione salvata con successo!", "success");
     } catch (error) {
-      alert("Errore durante il salvataggio: " + error.message);
+      mostraNotifica("Errore durante il salvataggio: " + error.message, "error");
     }
   };
 
@@ -57,11 +78,12 @@ function App() {
                    || salaSelezionata;
     
     try {
-      const response = await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
+      const response = await ottieniToken();
       await api.cancellaPrenotazione(response.accessToken, id, emailSala);
       setTriggerAggiornamento(prev => prev + 1); 
+      mostraNotifica("Prenotazione cancellata con successo!", "success");
     } catch (error) {
-      alert("Errore durante la cancellazione: " + error.message);
+      mostraNotifica("Errore durante la cancellazione: " + error.message, "error");
     }
   };
 
@@ -71,20 +93,44 @@ function App() {
   };
 
   useEffect(() => {
+    let smontato = false;
     if (accounts.length > 0) {
+      
+      // Controlla cache in sessionStorage
+      const cacheSale = sessionStorage.getItem("cache_sale");
+      if (cacheSale) {
+        try {
+          const datiCache = JSON.parse(cacheSale);
+          setSale(datiCache);
+          if (datiCache.length > 0) setSalaSelezionata(datiCache[0].email);
+          return; // Salta la chiamata API
+        } catch (e) {
+          // Cache corrotta, ignora e ricarica
+          sessionStorage.removeItem("cache_sale");
+        }
+      }
+      
       setLoading(true);
-      instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] })
+      ottieniToken()
       .then((response) => api.getSale(response.accessToken))
       .then((data) => {
+        if (smontato) return;
+        sessionStorage.setItem("cache_sale", JSON.stringify(data));
         setSale(data);
         if (data.length > 0) setSalaSelezionata(data[0].email); 
       })
-      .catch((err) => setErrore(err.message))
-      .finally(() => setLoading(false));
+      .catch((err) => {
+        if (!smontato) setErrore(err.message);
+      })
+      .finally(() => {
+        if (!smontato) setLoading(false);
+      });
     }
+    return () => { smontato = true; };
   }, [accounts, instance]);
 
   useEffect(() => {
+    let smontato = false;
     if (accounts.length > 0 && (salaSelezionata || vistaGlobale)) {
       setLoadingEventi(true);
       
@@ -97,7 +143,7 @@ function App() {
         fine = endOfMonth(dataCorrente).toISOString();
       }
       
-      instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] })
+      ottieniToken()
       .then((response) => {
         if (vistaGlobale) {
           return api.getPrenotazioniTutteSale(response.accessToken, inizio, fine);
@@ -106,6 +152,7 @@ function App() {
         }
       })
       .then((data) => {
+        if (smontato) return;
         console.log("DATI RICEVUTI DAL BACKEND:", data);
         const eventiFormattati = data.map(evento => {
           return { 
@@ -119,9 +166,14 @@ function App() {
         });
         setEventi(eventiFormattati);
       })
-      .catch((err) => console.error(err))
-      .finally(() => setLoadingEventi(false));
+      .catch((err) => {
+        if (!smontato) console.error(err);
+      })
+      .finally(() => {
+        if (!smontato) setLoadingEventi(false);
+      });
     }
+    return () => { smontato = true; };
   }, [accounts, instance, salaSelezionata, dataCorrente, triggerAggiornamento, vistaGlobale]);
 
   if (inProgress === "startup" || inProgress === "handleRedirect" || inProgress === "login") return <div className="fullscreen-message"><h2>Verifica... ⏳</h2></div>;
@@ -157,6 +209,12 @@ function App() {
               eventoDaModificare={eventoInModifica}
             />
             
+            {notifica && (
+              <div className={`toast toast-${notifica.tipo}`}>
+                <span>{notifica.messaggio}</span>
+                <button className="toast-close" onClick={() => setNotifica(null)}>✕</button>
+              </div>
+            )}
             {loading && <p>Caricamento sale...</p>}
             {errore && <p className="text-error">Errore: {errore}</p>}
             

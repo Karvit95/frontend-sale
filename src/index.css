@@ -99,6 +99,54 @@ body {
   color: #d13438;
 }
 
+/* --- TOAST NOTIFICHE --- */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  padding: 16px 24px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  animation: toast-slide-in 0.3s ease-out;
+  max-width: 450px;
+}
+
+.toast-error {
+  background-color: #d13438;
+}
+
+.toast-success {
+  background-color: #107c10;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  opacity: 0.8;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+@keyframes toast-slide-in {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* --- SCHERMATA LOGIN --- */
 .login-container {
   display: flex;
