@@ -50,12 +50,17 @@ const FormPrenotazione = ({
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = { 
-      titolo, 
-      start: `${giorno}T${oraInizio}:00`, 
-      end: `${giorno}T${oraFine}:00`, 
-      salaEmail: sala 
+        titolo, 
+        start: `${giorno}T${oraInizio}:00`, 
+        end: `${giorno}T${oraFine}:00`, 
+        salaEmail: sala,
+        // Se stiamo modificando, indica la sala originale per il backend
+        ...(eventoDaModificare && { 
+            salaEmailOriginale: eventoDaModificare.resource?.salaEmail 
+                              || eventoDaModificare.resource?.location?.locationEmailAddress
+        })
     };
-    onSalva(payload, eventoDaModificare?.id); 
+    onSalva(payload, eventoDaModificare?.id);
   };
 
   if (!isOpen) return null;
