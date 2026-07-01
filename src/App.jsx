@@ -179,6 +179,10 @@ function App() {
   if (inProgress === "startup" || inProgress === "handleRedirect" || inProgress === "login") return <div className="fullscreen-message"><h2>Verifica... ⏳</h2></div>;
   if (inProgress === "logout") return <div className="fullscreen-message"><h2>Disconnessione... 👋</h2></div>;
 
+  const currentAccount = accounts[0];
+  const ruoliUtente = currentAccount?.idTokenClaims?.roles || [];
+  const isAdmin = ruoliUtente.includes("RoomBooking.Admin");
+  
   return (
     <div className="app-container">
       {accounts.length > 0 ? (
@@ -192,6 +196,8 @@ function App() {
               setEventoInModifica(null); 
               setFormAperto(true);       
             }}
+            // PASSAGGIO PROP: Invia l'autorizzazione alla Sidebar
+            isAdmin={isAdmin} 
           />
 
           <div className="main-content">

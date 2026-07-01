@@ -20,9 +20,19 @@ const FormPrenotazione = ({
       setTitolo(eventoDaModificare.title || "");
       
       if (eventoDaModificare.start && eventoDaModificare.end) {
-        // Le date arrivano già in formato "YYYY-MM-DDTHH:mm:ss.0000" dal backend Graph
-        const startStr = eventoDaModificare.start;
-        const endStr = eventoDaModificare.end;
+        // Convertiamo gli oggetti Date in stringhe mantenendo il fuso orario locale
+        const formatDate = (date) => {
+          if (typeof date === 'string') return date;
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          const hours = String(date.getHours()).padStart(2, '0');
+          const minutes = String(date.getMinutes()).padStart(2, '0');
+          return `${year}-${month}-${day}T${hours}:${minutes}`;
+        };
+
+        const startStr = formatDate(eventoDaModificare.start);
+        const endStr = formatDate(eventoDaModificare.end);
 
         // Estraiamo data e orario splittando semplicemente la "T"
         setGiorno(startStr.split('T')[0]); 

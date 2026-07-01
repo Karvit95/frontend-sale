@@ -1,11 +1,13 @@
 import './Sidebar.css';
 
+// 1. Aggiungiamo isAdmin tra le props in ingresso
 const Sidebar = ({ 
   utenteNome, 
   handleLogout, 
   onApriNuovaPrenotazione, 
   onAttivaVistaGlobale, 
-  vistaGlobale 
+  vistaGlobale,
+  isAdmin 
 }) => {
 
   const getIniziali = (nome) => {
@@ -34,7 +36,7 @@ const Sidebar = ({
         </div>
       </div>
 
-      {/* Sezione Centrale: Menu di Navigazione (Prende tutto lo spazio vuoto spingendo l'uscita in basso) */}
+      {/* Sezione Centrale: Menu di Navigazione */}
       <div style={{ flexGrow: 1 }}>
         <button 
           className={`bottone-menu ${vistaGlobale ? 'attivo' : ''}`}
@@ -43,24 +45,25 @@ const Sidebar = ({
           <span style={{ fontSize: '1.2rem' }}>🗓️</span> Tabellone Globale
         </button>
 
-        <button 
-          className="bottone-menu primario"
-          onClick={onApriNuovaPrenotazione}
-        >
-          + Nuova Prenotazione
-        </button>
+        {/* RENDERING CONDIZIONALE: Il bottone appare SOLO se isAdmin è true */}
+        {isAdmin && (
+          <button 
+            className="bottone-menu primario"
+            onClick={onApriNuovaPrenotazione}
+          >
+            + Nuova Prenotazione
+          </button>
+        )}
       </div>
 
       {/* Fondo della Sidebar: Esci */}
       <div style={{ borderTop: "1px solid #e1dfdd", paddingTop: "15px" }}>
-        <button 
-          onClick={handleLogout} 
-          className="bottone-logout" 
-        >
-          <span style={{ fontSize: '1.2rem' }}>🚪</span> Esci dall'account
-        </button>
+         <button className="bottone-menu" onClick={handleLogout}>
+            🚪 Esci
+         </button>
       </div>
     </div>
   );
 };
+
 export default Sidebar;
