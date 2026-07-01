@@ -19,19 +19,15 @@ const FormPrenotazione = ({
     if (eventoDaModificare && isOpen) {
       setTitolo(eventoDaModificare.title || "");
       
-      const formattaDataLocale = (dataInput) => {
-        const d = new Date(dataInput);
-        const offset = d.getTimezoneOffset() * 60000;
-        return new Date(d.getTime() - offset).toISOString(); 
-      };
-      
       if (eventoDaModificare.start && eventoDaModificare.end) {
-        const isoInizio = formattaDataLocale(eventoDaModificare.start);
-        const isoFine = formattaDataLocale(eventoDaModificare.end);
+        // Le date arrivano già in formato "YYYY-MM-DDTHH:mm:ss.0000" dal backend Graph
+        const startStr = eventoDaModificare.start;
+        const endStr = eventoDaModificare.end;
 
-        setGiorno(isoInizio.split('T')[0]); 
-        setOraInizio(isoInizio.split('T')[1].substring(0, 5)); 
-        setOraFine(isoFine.split('T')[1].substring(0, 5));
+        // Estraiamo data e orario splittando semplicemente la "T"
+        setGiorno(startStr.split('T')[0]); 
+        setOraInizio(startStr.split('T')[1].substring(0, 5)); 
+        setOraFine(endStr.split('T')[1].substring(0, 5));
       }
       
       const emailSalaEvento = eventoDaModificare.resource?.location?.locationEmailAddress 
