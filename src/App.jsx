@@ -7,6 +7,7 @@ import Calendario from "./components/Calendario";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import { api } from "./services/api";
+import { getFromCache, setInCache, clearCache } from "./services/cacheWithTTL";
 import FormPrenotazione from "./components/FormPrenotazione";
 
 function App() {
@@ -37,28 +38,21 @@ function App() {
   const handleLogin = () => instance.loginRedirect(loginRequest).catch(e => console.error(e));
   const handleLogout = () => instance.logoutRedirect().catch(e => console.error(e));
 
-  const ottieniToken = async () => {
-    try {
-      return await instance.acquireTokenSilent({ ...loginRequest, account: accounts[0] });
-    } catch (error) {
-      console.warn("Token silent failed, tentativo con popup:", error);
-      try {
-        return await instance.acquireTokenPopup({ ...loginRequest, account: accounts[0] });
-      } catch (popupError) {
-        throw popupError;
-      }
-    }
-  };
-
   const handleSalvaPrenotazione = async (payload, idEventoDaModificare) => {
     try {
-      const response = await ottieniToken();
-      
       if (idEventoDaModificare) {
-        await api.modificaPrenotazione(response.accessToken, idEventoDaModificare, payload);
+        await api.modificaPrenotazione(idEventoDaModificare, payload);
       } else {
-        await api.creaPrenotazione(response.accessToken, payload);
+        await api.creaPrenotazione(payload);
       }
+      
+      // Invalida cache delle prenotazioni dopo una scrittura
+      const meseCorrente = dataCorrente.toISOString().slice(0, 7);
+      if (payload.salaEmail) {
+        clearCache(`eventi_${payload.salaEmail}_${meseCorrente}`);
+      }
+      clearCache(`eventi_${salaSelezionata}_${meseCorrente}`);
+      clearCache(`eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`);
       
       setTriggerAggiornamento(prev => prev + 1); 
       setFormAperto(false); 
@@ -78,8 +72,14 @@ function App() {
                    || salaSelezionata;
     
     try {
-      const response = await ottieniToken();
-      await api.cancellaPrenotazione(response.accessToken, id, emailSala);
+      await api.cancellaPrenotazione(id, emailSala);
+      
+      // Invalida cache delle prenotazioni dopo una cancellazione
+      const meseCorrente = dataCorrente.toISOString().slice(0, 7);
+      clearCache(`eventi_${emailSala}_${meseCorrente}`);
+      clearCache(`eventi_${salaSelezionata}_${meseCorrente}`);
+      clearCache(`eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`);
+      
       setTriggerAggiornamento(prev => prev + 1); 
       mostraNotifica("Prenotazione cancellata con successo!", "success");
     } catch (error) {
@@ -96,26 +96,19 @@ function App() {
     let smontato = false;
     if (accounts.length > 0) {
       
-      // Controlla cache in sessionStorage
-      const cacheSale = sessionStorage.getItem("cache_sale");
+      // Controlla cache TTL in sessionStorage
+      const cacheSale = getFromCache("cache_sale");
       if (cacheSale) {
-        try {
-          const datiCache = JSON.parse(cacheSale);
-          setSale(datiCache);
-          if (datiCache.length > 0) setSalaSelezionata(datiCache[0].email);
-          return; // Salta la chiamata API
-        } catch (e) {
-          // Cache corrotta, ignora e ricarica
-          sessionStorage.removeItem("cache_sale");
-        }
+        setSale(cacheSale);
+        if (cacheSale.length > 0) setSalaSelezionata(cacheSale[0].email);
+        return; // Salta la chiamata API
       }
       
       setLoading(true);
-      ottieniToken()
-      .then((response) => api.getSale(response.accessToken))
+      api.getSale()
       .then((data) => {
         if (smontato) return;
-        sessionStorage.setItem("cache_sale", JSON.stringify(data));
+        setInCache("cache_sale", data);
         setSale(data);
         if (data.length > 0) setSalaSelezionata(data[0].email); 
       })
@@ -142,15 +135,25 @@ function App() {
         inizio = startOfMonth(dataCorrente).toISOString();
         fine = endOfMonth(dataCorrente).toISOString();
       }
+
+      // Chiave cache composita: dipende da sala + data + vista
+      const cacheKey = vistaGlobale
+        ? `eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`
+        : `eventi_${salaSelezionata}_${dataCorrente.toISOString().slice(0, 7)}`;
+
+      // Controlla cache TTL
+      const cacheEventi = getFromCache(cacheKey);
+      if (cacheEventi) {
+        setEventi(cacheEventi);
+        setLoadingEventi(false);
+        return; // Salta la chiamata API
+      }
       
-      ottieniToken()
-      .then((response) => {
-        if (vistaGlobale) {
-          return api.getPrenotazioniTutteSale(response.accessToken, inizio, fine);
-        } else {
-          return api.getPrenotazioni(response.accessToken, salaSelezionata, inizio, fine);
-        }
-      })
+      const fetchEventi = vistaGlobale
+        ? api.getPrenotazioniTutteSale(inizio, fine)
+        : api.getPrenotazioni(salaSelezionata, inizio, fine);
+
+      fetchEventi
       .then((data) => {
         if (smontato) return;
         console.log("DATI RICEVUTI DAL BACKEND:", data);
@@ -164,6 +167,7 @@ function App() {
             resource: evento 
           };
         });
+        setInCache(cacheKey, eventiFormattati);
         setEventi(eventiFormattati);
       })
       .catch((err) => {
@@ -176,13 +180,13 @@ function App() {
     return () => { smontato = true; };
   }, [accounts, instance, salaSelezionata, dataCorrente, triggerAggiornamento, vistaGlobale]);
 
-  if (inProgress === "startup" || inProgress === "handleRedirect" || inProgress === "login") return <div className="fullscreen-message"><h2>Verifica... ⏳</h2></div>;
-  if (inProgress === "logout") return <div className="fullscreen-message"><h2>Disconnessione... 👋</h2></div>;
-
   const currentAccount = accounts[0];
   const ruoliUtente = currentAccount?.idTokenClaims?.roles || [];
   const isAdmin = ruoliUtente.includes("RoomBooking.Admin");
-  
+
+  if (inProgress === "startup" || inProgress === "handleRedirect" || inProgress === "login") return <div className="fullscreen-message"><h2>Verifica... ⏳</h2></div>;
+  if (inProgress === "logout") return <div className="fullscreen-message"><h2>Disconnessione... 👋</h2></div>;
+
   return (
     <div className="app-container">
       {accounts.length > 0 ? (
@@ -196,8 +200,7 @@ function App() {
               setEventoInModifica(null); 
               setFormAperto(true);       
             }}
-            // PASSAGGIO PROP: Invia l'autorizzazione alla Sidebar
-            isAdmin={isAdmin} 
+            isAdmin={isAdmin}
           />
 
           <div className="main-content">
