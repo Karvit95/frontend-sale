@@ -46,13 +46,39 @@ function App() {
         await api.creaPrenotazione(payload);
       }
       
-      // Invalida cache delle prenotazioni dopo una scrittura
-      const meseCorrente = dataCorrente.toISOString().slice(0, 7);
-      if (payload.salaEmail) {
-        clearCache(`eventi_${payload.salaEmail}_${meseCorrente}`);
+      // Invalida la cache in base alla sala/data REALE della prenotazione appena
+      // salvata (payload.start), non della vista attualmente aperta (dataCorrente):
+      // se prenoti per un giorno/mese diverso da quello che stai guardando in quel
+      // momento, la cache di quel giorno/mese non verrebbe mai invalidata altrimenti.
+      const dataBooking = new Date(payload.start);
+      const meseBooking = dataBooking.toISOString().slice(0, 7);
+      const giornoBooking = dataBooking.toISOString().slice(0, 10);
+
+      clearCache(`eventi_${payload.salaEmail}_${meseBooking}`);
+      clearCache(`eventi_globali_${giornoBooking}`);
+
+      // Se la sala è cambiata, invalida anche la cache della sala di provenienza
+      if (payload.salaEmailOriginale && payload.salaEmailOriginale !== payload.salaEmail) {
+        clearCache(`eventi_${payload.salaEmailOriginale}_${meseBooking}`);
       }
-      clearCache(`eventi_${salaSelezionata}_${meseCorrente}`);
-      clearCache(`eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`);
+
+      // Se stiamo modificando una prenotazione esistente e la data/mese originale
+      // era diverso (es. spostata a un altro giorno), invalida anche la cache di
+      // provenienza: l'evento è "sparito" da lì e la vista di quel giorno/mese
+      // non deve continuare a mostrarlo dalla cache.
+      if (eventoInModifica?.start) {
+        const dataOriginale = eventoInModifica.start;
+        const salaOriginale = payload.salaEmailOriginale || payload.salaEmail;
+        const meseOriginale = dataOriginale.toISOString().slice(0, 7);
+        const giornoOriginale = dataOriginale.toISOString().slice(0, 10);
+
+        if (meseOriginale !== meseBooking) {
+          clearCache(`eventi_${salaOriginale}_${meseOriginale}`);
+        }
+        if (giornoOriginale !== giornoBooking) {
+          clearCache(`eventi_globali_${giornoOriginale}`);
+        }
+      }
       
       setTriggerAggiornamento(prev => prev + 1); 
       setFormAperto(false); 
@@ -74,11 +100,22 @@ function App() {
     try {
       await api.cancellaPrenotazione(id, emailSala);
       
-      // Invalida cache delle prenotazioni dopo una cancellazione
-      const meseCorrente = dataCorrente.toISOString().slice(0, 7);
-      clearCache(`eventi_${emailSala}_${meseCorrente}`);
-      clearCache(`eventi_${salaSelezionata}_${meseCorrente}`);
-      clearCache(`eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`);
+      // Invalida la cache in base alla sala/data REALE dell'evento appena
+      // cancellato (già disponibile in memoria come oggetto Date, grazie al
+      // fix precedente sulla ricostruzione delle date lette dalla cache),
+      // non della vista attualmente aperta.
+      if (evento?.start) {
+        const meseEvento = evento.start.toISOString().slice(0, 7);
+        const giornoEvento = evento.start.toISOString().slice(0, 10);
+        clearCache(`eventi_${emailSala}_${meseEvento}`);
+        clearCache(`eventi_globali_${giornoEvento}`);
+      } else {
+        // Fallback difensivo: non dovrebbe succedere, dato che l'ID arriva
+        // da un evento già presente nella lista in memoria.
+        const meseCorrente = dataCorrente.toISOString().slice(0, 7);
+        clearCache(`eventi_${emailSala}_${meseCorrente}`);
+        clearCache(`eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`);
+      }
       
       setTriggerAggiornamento(prev => prev + 1); 
       mostraNotifica("Prenotazione cancellata con successo!", "success");
@@ -144,7 +181,16 @@ function App() {
       // Controlla cache TTL
       const cacheEventi = getFromCache(cacheKey);
       if (cacheEventi) {
-        setEventi(cacheEventi);
+        // JSON.stringify (fatto da setInCache) serializza i Date in stringhe ISO,
+        // e JSON.parse (fatto da getFromCache) non li "resuscita" automaticamente.
+        // Senza questa conversione, react-big-calendar riceverebbe stringhe al posto
+        // di oggetti Date e andrebbe in errore (es. su .getHours()).
+        const eventiRipristinati = cacheEventi.map(evento => ({
+          ...evento,
+          start: new Date(evento.start),
+          end: new Date(evento.end),
+        }));
+        setEventi(eventiRipristinati);
         setLoadingEventi(false);
         return; // Salta la chiamata API
       }

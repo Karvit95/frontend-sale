@@ -148,11 +148,20 @@ const Calendario = ({ eventi, data, onNavigate, onEdit, onDelete, vistaGlobale, 
     </div>
   );
 
+  // Il backend non impone più un vincolo di fascia oraria: la vista giorno deve
+  // quindi coprire l'intera giornata, altrimenti prenotazioni fuori da 8-20
+  // verrebbero create correttamente ma tagliate/non visibili qui.
   const minTime = new Date();
-  minTime.setHours(8, 0, 0);
+  minTime.setHours(0, 0, 0);
 
   const maxTime = new Date();
-  maxTime.setHours(20, 0, 0);
+  maxTime.setHours(23, 59, 59);
+
+  // Posizione di scroll iniziale: apre la vista già alle 8:00 (l'orario "tipico"
+  // di lavoro), ma senza limitare la visualizzazione — si può comunque scorrere
+  // prima delle 8 o dopo le 20 per vedere prenotazioni fuori da quella fascia.
+  const scrollToTime = new Date();
+  scrollToTime.setHours(8, 0, 0);
 
   return (
     <div style={{ height: '850px', backgroundColor: 'white', padding: '15px', borderRadius: '8px' }}>
@@ -167,6 +176,7 @@ const Calendario = ({ eventi, data, onNavigate, onEdit, onDelete, vistaGlobale, 
         
         min={minTime}
         max={maxTime}
+        scrollToTime={scrollToTime}
         
         resources={risorseCalendario}
         resourceIdAccessor="id" 
