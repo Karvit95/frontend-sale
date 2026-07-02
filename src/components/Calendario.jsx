@@ -118,10 +118,28 @@ const Calendario = ({ eventi, data, onNavigate, onEdit, onDelete, vistaGlobale, 
     }));
   }, [vistaGlobale, sale]);
 
-  // VISTA AGENDA: Utilizziamo le nuove classi Ghost
+  // Rimuove i tag HTML dalla descrizione (il backend restituisce HTML dal corpo Exchange)
+  const stripHtml = (html) => {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    return doc.body.textContent || '';
+  };
+
+  // VISTA AGENDA: Mostra titolo, organizzatore e descrizione
   const CustomAgendaEvent = ({ event }) => (
     <div className="agenda-event-row">
-      <span className="agenda-event-title">{event.title}</span>
+      <div className="agenda-event-info">
+        <span className="agenda-event-title">{event.title}</span>
+        {event.resource?.organizzatoreNome && (
+          <span className="agenda-event-organizer">
+            👤 {event.resource.organizzatoreNome}
+          </span>
+        )}
+        {event.resource?.descrizione && (
+          <span className="agenda-event-description">
+            {stripHtml(event.resource.descrizione)}
+          </span>
+        )}
+      </div>
       {event.resource?.modificabile !== false && (
         <div className="agenda-event-actions">
           <button onClick={(e) => { e.stopPropagation(); if (onEdit) onEdit(event); }} className="btn-ghost-primary">

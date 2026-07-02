@@ -10,6 +10,7 @@ const FormPrenotazione = ({
 }) => {
   
   const [titolo, setTitolo] = useState("");
+  const [descrizione, setDescrizione] = useState("");
   const [giorno, setGiorno] = useState("");       
   const [oraInizio, setOraInizio] = useState(""); 
   const [oraFine, setOraFine] = useState("");     
@@ -18,6 +19,7 @@ const FormPrenotazione = ({
   useEffect(() => {
     if (eventoDaModificare && isOpen) {
       setTitolo(eventoDaModificare.title || "");
+      setDescrizione(eventoDaModificare.resource?.descrizione || "");
       
       if (eventoDaModificare.start && eventoDaModificare.end) {
         // Convertiamo gli oggetti Date in stringhe mantenendo il fuso orario locale
@@ -46,6 +48,7 @@ const FormPrenotazione = ({
 
     } else if (isOpen) {
       setTitolo("");
+      setDescrizione("");
       setGiorno("");
       setOraInizio("");
       setOraFine("");
@@ -57,6 +60,7 @@ const FormPrenotazione = ({
     e.preventDefault();
     const payload = { 
         titolo, 
+        descrizione,
         start: `${giorno}T${oraInizio}:00`, 
         end: `${giorno}T${oraFine}:00`, 
         salaEmail: sala,
@@ -91,6 +95,17 @@ const FormPrenotazione = ({
               value={titolo} 
               onChange={(e) => setTitolo(e.target.value)} 
               required 
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Descrizione (opzionale):</label>
+            <textarea 
+              className="form-textarea"
+              value={descrizione} 
+              onChange={(e) => setDescrizione(e.target.value)}
+              rows={3}
+              placeholder="Inserisci una descrizione per la riunione..."
             />
           </div>
 
