@@ -1,5 +1,22 @@
 import { useState, useEffect } from "react";
 
+const GIORNI_SETTIMANA = [
+  { value: "Monday", label: "Lunedì" },
+  { value: "Tuesday", label: "Martedì" },
+  { value: "Wednesday", label: "Mercoledì" },
+  { value: "Thursday", label: "Giovedì" },
+  { value: "Friday", label: "Venerdì" },
+  { value: "Saturday", label: "Sabato" },
+];
+
+const TIPI_RICORRENZA = [
+  { value: "", label: "Nessuna ricorrenza" },
+  { value: "daily", label: "Giornaliera" },
+  { value: "weekly", label: "Settimanale" },
+  { value: "monthly", label: "Mensile" },
+  { value: "yearly", label: "Annuale" },
+];
+
 const FormPrenotazione = ({ 
   isOpen, 
   onClose, 
@@ -16,13 +33,30 @@ const FormPrenotazione = ({
   const [oraFine, setOraFine] = useState("");     
   const [sala, setSala] = useState("");
 
+  // Campi ricorrenza
+  const [pattern, setPattern] = useState("");
+  const [giorniSettimana, setGiorniSettimana] = useState([]);
+  const [dataFine, setDataFine] = useState("");
+
+  const [tipoModifica, setTipoModifica] = useState("SERIE"); // SERIE o SINGOLA per modifica
+  const [mostraSceltaModifica, setMostraSceltaModifica] = useState(false);
+
   useEffect(() => {
     if (eventoDaModificare && isOpen) {
+      // Se l'evento è ricorrente, potrebbero servirci entrambe le modalità
+      const eRicorrente = eventoDaModificare.resource?.ricorrente === true;
+      if (eRicorrente) {
+        setMostraSceltaModifica(true);
+        setTipoModifica("SERIE");
+      } else {
+        setMostraSceltaModifica(false);
+        setTipoModifica("SERIE");
+      }
+
       setTitolo(eventoDaModificare.title || "");
       setDescrizione(eventoDaModificare.resource?.descrizione || "");
       
       if (eventoDaModificare.start && eventoDaModificare.end) {
-        // Convertiamo gli oggetti Date in stringhe mantenendo il fuso orario locale
         const formatDate = (date) => {
           if (typeof date === 'string') return date;
           const year = date.getFullYear();
@@ -36,7 +70,6 @@ const FormPrenotazione = ({
         const startStr = formatDate(eventoDaModificare.start);
         const endStr = formatDate(eventoDaModificare.end);
 
-        // Estraiamo data e orario splittando semplicemente la "T"
         setGiorno(startStr.split('T')[0]); 
         setOraInizio(startStr.split('T')[1].substring(0, 5)); 
         setOraFine(endStr.split('T')[1].substring(0, 5));
@@ -46,6 +79,11 @@ const FormPrenotazione = ({
                            || eventoDaModificare.resource?.salaEmail;
       setSala(emailSalaEvento || salaSelezionata || "");
 
+      // Reset campi ricorrenza (in modifica non si cambia pattern)
+      setPattern("");
+      setGiorniSettimana([]);
+      setDataFine("");
+
     } else if (isOpen) {
       setTitolo("");
       setDescrizione("");
@@ -53,8 +91,22 @@ const FormPrenotazione = ({
       setOraInizio("");
       setOraFine("");
       setSala(salaSelezionata || (sale.length > 0 ? sale[0].email : ""));
+      // Reset ricorrenza
+      setPattern("");
+      setGiorniSettimana([]);
+      setDataFine("");
+      setMostraSceltaModifica(false);
+      setTipoModifica("SERIE");
     }
   }, [eventoDaModificare, isOpen, salaSelezionata, sale]);
+
+  const toggleGiorno = (giorno) => {
+    setGiorniSettimana(prev =>
+      prev.includes(giorno)
+        ? prev.filter(g => g !== giorno)
+        : [...prev, giorno]
+    );
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -64,12 +116,27 @@ const FormPrenotazione = ({
         start: `${giorno}T${oraInizio}:00`, 
         end: `${giorno}T${oraFine}:00`, 
         salaEmail: sala,
-        // Se stiamo modificando, indica la sala originale per il backend
         ...(eventoDaModificare && { 
             salaEmailOriginale: eventoDaModificare.resource?.salaEmail 
                               || eventoDaModificare.resource?.location?.locationEmailAddress
         })
     };
+
+    // Aggiungi campi ricorrenza se attiva
+    if (pattern) {
+      payload.pattern = pattern;
+      payload.intervallo = 1; // sempre 1
+      payload.dataFine = dataFine;
+      if (pattern === "weekly") {
+        payload.giorniSettimana = giorniSettimana;
+      }
+    }
+
+    // Se stiamo modificando un evento ricorrente, indica il tipo
+    if (eventoDaModificare && mostraSceltaModifica) {
+      payload.tipoModifica = tipoModifica;
+    }
+
     onSalva(payload, eventoDaModificare?.id);
   };
 
@@ -85,6 +152,20 @@ const FormPrenotazione = ({
           </h2>
           <button onClick={onClose} className="btn-close">✕</button>
         </div>
+
+        {mostraSceltaModifica && (
+          <div className="form-group" style={{ backgroundColor: "#fff3cd", padding: "10px", borderRadius: "6px", marginBottom: "12px" }}>
+            <label className="form-label">Tipo modifica:</label>
+            <select 
+              className="form-select"
+              value={tipoModifica} 
+              onChange={(e) => setTipoModifica(e.target.value)}
+            >
+              <option value="SERIE">Modifica tutta la serie</option>
+              <option value="SINGOLA">Modifica solo questa occorrenza</option>
+            </select>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit}>
           <div className="form-group">
@@ -157,8 +238,60 @@ const FormPrenotazione = ({
               ))}
             </select>
           </div>
+
+          {/* Sezione ricorrenza - visibile solo in creazione */}
+          {!eventoDaModificare && (
+            <>
+              <hr style={{ margin: "16px 0" }} />
+              <div className="form-group">
+                <label className="form-label">Ricorrenza:</label>
+                <select 
+                  className="form-select"
+                  value={pattern} 
+                  onChange={(e) => setPattern(e.target.value)}
+                >
+                  {TIPI_RICORRENZA.map((tipo) => (
+                    <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {pattern && (
+                <>
+                  {pattern === "weekly" && (
+                    <div className="form-group">
+                      <label className="form-label">Giorni della settimana:</label>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                        {GIORNI_SETTIMANA.map((g) => (
+                          <label key={g.value} style={{ display: "flex", alignItems: "center", gap: "4px", cursor: "pointer" }}>
+                            <input 
+                              type="checkbox"
+                              checked={giorniSettimana.includes(g.value)}
+                              onChange={() => toggleGiorno(g.value)}
+                            />
+                            {g.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="form-group">
+                    <label className="form-label">Data fine ricorrenza:</label>
+                    <input 
+                      type="date" 
+                      className="form-input"
+                      value={dataFine} 
+                      onChange={(e) => setDataFine(e.target.value)} 
+                      required={!!pattern}
+                    />
+                  </div>
+                </>
+              )}
+            </>
+          )}
           
-          <button type="submit" className="btn-primary">
+          <button type="submit" className="btn-primary" style={{ marginTop: "16px" }}>
             {eventoDaModificare ? "Aggiorna Prenotazione" : "Prenota Sala"}
           </button>
         </form>

@@ -49,8 +49,8 @@ export const api = {
     return response.json();
   },
 
-  cancellaPrenotazione: async (id, salaEmail) => {
-    const url = `${BASE_URL}/prenotazioni/${id}?salaEmail=${encodeURIComponent(salaEmail)}`;
+  cancellaPrenotazione: async (id, salaEmail, tipoCancellazione = "SERIE") => {
+    const url = `${BASE_URL}/prenotazioni/${id}?salaEmail=${encodeURIComponent(salaEmail)}&tipoCancellazione=${encodeURIComponent(tipoCancellazione)}`;
 
     await authFetch(
       url,

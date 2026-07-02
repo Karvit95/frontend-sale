@@ -128,7 +128,10 @@ const Calendario = ({ eventi, data, onNavigate, onEdit, onDelete, vistaGlobale, 
   const CustomAgendaEvent = ({ event }) => (
     <div className="agenda-event-row">
       <div className="agenda-event-info">
-        <span className="agenda-event-title">{event.title}</span>
+        <span className="agenda-event-title">
+          {event.resource?.ricorrente && <span style={{ marginRight: "4px" }}>🔄</span>}
+          {event.title}
+        </span>
         {event.resource?.organizzatoreNome && (
           <span className="agenda-event-organizer">
             👤 {event.resource.organizzatoreNome}
@@ -156,7 +159,10 @@ const Calendario = ({ eventi, data, onNavigate, onEdit, onDelete, vistaGlobale, 
   // VISTA GIORNALIERA: Utilizziamo bottoncini compatti semitrasparenti
   const CustomDayEvent = ({ event }) => (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", justifyContent: "space-between", padding: "2px" }}>
-      <span style={{ fontWeight: "600", fontSize: "0.85rem" }}>{event.title}</span>
+      <span style={{ fontWeight: "600", fontSize: "0.85rem" }}>
+        {event.resource?.ricorrente && <span style={{ marginRight: "2px" }}>🔄</span>}
+        {event.title}
+      </span>
       {event.resource?.modificabile !== false && (
         <div style={{ display: "flex", gap: "4px", marginTop: "auto" }}>
           <button onClick={(e) => { e.stopPropagation(); if (onEdit) onEdit(event); }} className="btn-ghost-sm" title="Modifica">✏️</button>

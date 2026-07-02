@@ -90,28 +90,59 @@ function App() {
   };
 
   const handleCancellaPrenotazione = async (id) => {
-    if(!window.confirm("Sei sicuro di voler cancellare questa prenotazione?")) return;
-    
     const evento = eventi.find(e => e.id === id);
     const emailSala = evento?.resource?.location?.locationEmailAddress 
                    || evento?.resource?.salaEmail 
                    || salaSelezionata;
     
+    // Se evento ricorrente, chiedi se cancellare serie o singola occorrenza
+    if (evento?.resource?.ricorrente === true) {
+      const scelta = window.confirm(
+        "Questo evento fa parte di una serie ricorrente.\n\n" +
+        "Clicca OK per cancellare TUTTA la serie.\nClicca ANNULLA per cancellare solo questa occorrenza."
+      );
+      
+      const tipoCancellazione = scelta ? "SERIE" : "SINGOLA";
+      
+      if (scelta) {
+        // SERIE: conferma ulteriore
+        if (!window.confirm("Sei sicuro di voler cancellare TUTTA la serie?")) return;
+      } else {
+        // SINGOLA: conferma
+        if (!window.confirm("Sei sicuro di voler cancellare solo questa occorrenza?")) return;
+      }
+      
+      try {
+        await api.cancellaPrenotazione(id, emailSala, tipoCancellazione);
+        
+        if (evento?.start) {
+          const meseEvento = evento.start.toISOString().slice(0, 7);
+          const giornoEvento = evento.start.toISOString().slice(0, 10);
+          clearCache(`eventi_${emailSala}_${meseEvento}`);
+          clearCache(`eventi_globali_${giornoEvento}`);
+        }
+        
+        setTriggerAggiornamento(prev => prev + 1); 
+        mostraNotifica("Prenotazione cancellata con successo!", "success");
+      } catch (error) {
+        mostraNotifica("Errore durante la cancellazione: " + error.message, "error");
+      }
+      
+      return;
+    }
+    
+    // Evento singolo: conferma normale
+    if(!window.confirm("Sei sicuro di voler cancellare questa prenotazione?")) return;
+    
     try {
       await api.cancellaPrenotazione(id, emailSala);
       
-      // Invalida la cache in base alla sala/data REALE dell'evento appena
-      // cancellato (già disponibile in memoria come oggetto Date, grazie al
-      // fix precedente sulla ricostruzione delle date lette dalla cache),
-      // non della vista attualmente aperta.
       if (evento?.start) {
         const meseEvento = evento.start.toISOString().slice(0, 7);
         const giornoEvento = evento.start.toISOString().slice(0, 10);
         clearCache(`eventi_${emailSala}_${meseEvento}`);
         clearCache(`eventi_globali_${giornoEvento}`);
       } else {
-        // Fallback difensivo: non dovrebbe succedere, dato che l'ID arriva
-        // da un evento già presente nella lista in memoria.
         const meseCorrente = dataCorrente.toISOString().slice(0, 7);
         clearCache(`eventi_${emailSala}_${meseCorrente}`);
         clearCache(`eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`);
