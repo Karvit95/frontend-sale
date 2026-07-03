@@ -132,9 +132,12 @@ const FormPrenotazione = ({
       }
     }
 
-    // Se stiamo modificando un evento ricorrente, indica il tipo
+    // Se stiamo modificando un evento ricorrente, indica il tipo e l'ID del series
+    // master: senza quest'ultimo, "modifica tutta la serie" toccherebbe solo
+    // l'occorrenza su cui hai cliccato (in Graph l'effetto dipende da QUALE ID usi).
     if (eventoDaModificare && mostraSceltaModifica) {
       payload.tipoModifica = tipoModifica;
+      payload.seriesMasterId = eventoDaModificare.resource?.seriesMasterId;
     }
 
     onSalva(payload, eventoDaModificare?.id);

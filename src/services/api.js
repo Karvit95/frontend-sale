@@ -49,8 +49,11 @@ export const api = {
     return response.json();
   },
 
-  cancellaPrenotazione: async (id, salaEmail, tipoCancellazione = "SERIE") => {
-    const url = `${BASE_URL}/prenotazioni/${id}?salaEmail=${encodeURIComponent(salaEmail)}&tipoCancellazione=${encodeURIComponent(tipoCancellazione)}`;
+  cancellaPrenotazione: async (id, salaEmail, tipoCancellazione = "SERIE", seriesMasterId = null) => {
+    let url = `${BASE_URL}/prenotazioni/${id}?salaEmail=${encodeURIComponent(salaEmail)}&tipoCancellazione=${encodeURIComponent(tipoCancellazione)}`;
+    if (seriesMasterId) {
+      url += `&seriesMasterId=${encodeURIComponent(seriesMasterId)}`;
+    }
 
     await authFetch(
       url,

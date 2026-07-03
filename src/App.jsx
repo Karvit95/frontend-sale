@@ -7,7 +7,7 @@ import Calendario from "./components/Calendario";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import { api } from "./services/api";
-import { getFromCache, setInCache, clearCache } from "./services/cacheWithTTL";
+import { getFromCache, setInCache, clearCache, clearCacheByPrefix } from "./services/cacheWithTTL";
 import FormPrenotazione from "./components/FormPrenotazione";
 
 function App() {
@@ -46,37 +46,56 @@ function App() {
         await api.creaPrenotazione(payload);
       }
       
-      // Invalida la cache in base alla sala/data REALE della prenotazione appena
-      // salvata (payload.start), non della vista attualmente aperta (dataCorrente):
-      // se prenoti per un giorno/mese diverso da quello che stai guardando in quel
-      // momento, la cache di quel giorno/mese non verrebbe mai invalidata altrimenti.
-      const dataBooking = new Date(payload.start);
-      const meseBooking = dataBooking.toISOString().slice(0, 7);
-      const giornoBooking = dataBooking.toISOString().slice(0, 10);
+      // Una serie ricorrente può toccare molti mesi/giorni diversi: invece di
+      // calcolare ogni data delle occorrenze (duplicherebbe lato frontend la
+      // logica di espansione della ricorrenza, che vive correttamente solo sul
+      // backend), in questo caso invalidiamo in blocco tutta la cache delle
+      // sale coinvolte e tutta la vista globale, invece della singola chiave
+      // mese/giorno usata per un evento non ricorrente.
+      const isOperazioneSuSerie = !!payload.pattern // nuova serie ricorrente creata ora
+        || (eventoInModifica?.resource?.ricorrente === true && payload.tipoModifica === "SERIE"); // modifica di un'intera serie esistente
 
-      clearCache(`eventi_${payload.salaEmail}_${meseBooking}`);
-      clearCache(`eventi_globali_${giornoBooking}`);
-
-      // Se la sala è cambiata, invalida anche la cache della sala di provenienza
-      if (payload.salaEmailOriginale && payload.salaEmailOriginale !== payload.salaEmail) {
-        clearCache(`eventi_${payload.salaEmailOriginale}_${meseBooking}`);
-      }
-
-      // Se stiamo modificando una prenotazione esistente e la data/mese originale
-      // era diverso (es. spostata a un altro giorno), invalida anche la cache di
-      // provenienza: l'evento è "sparito" da lì e la vista di quel giorno/mese
-      // non deve continuare a mostrarlo dalla cache.
-      if (eventoInModifica?.start) {
-        const dataOriginale = eventoInModifica.start;
-        const salaOriginale = payload.salaEmailOriginale || payload.salaEmail;
-        const meseOriginale = dataOriginale.toISOString().slice(0, 7);
-        const giornoOriginale = dataOriginale.toISOString().slice(0, 10);
-
-        if (meseOriginale !== meseBooking) {
-          clearCache(`eventi_${salaOriginale}_${meseOriginale}`);
+      if (isOperazioneSuSerie) {
+        clearCacheByPrefix(`eventi_${payload.salaEmail}_`);
+        if (payload.salaEmailOriginale && payload.salaEmailOriginale !== payload.salaEmail) {
+          clearCacheByPrefix(`eventi_${payload.salaEmailOriginale}_`);
         }
-        if (giornoOriginale !== giornoBooking) {
-          clearCache(`eventi_globali_${giornoOriginale}`);
+        clearCacheByPrefix(`eventi_globali_`);
+      } else {
+        // Invalidazione precisa: l'operazione riguarda una singola data, quindi
+        // possiamo invalidare solo le chiavi realmente coinvolte, in base alla
+        // sala/data REALE della prenotazione (payload.start), non della vista
+        // attualmente aperta (dataCorrente) — altrimenti, prenotando per un
+        // giorno/mese diverso da quello visualizzato in quel momento, la cache
+        // di quel giorno/mese non verrebbe mai invalidata.
+        const dataBooking = new Date(payload.start);
+        const meseBooking = dataBooking.toISOString().slice(0, 7);
+        const giornoBooking = dataBooking.toISOString().slice(0, 10);
+
+        clearCache(`eventi_${payload.salaEmail}_${meseBooking}`);
+        clearCache(`eventi_globali_${giornoBooking}`);
+
+        // Se la sala è cambiata, invalida anche la cache della sala di provenienza
+        if (payload.salaEmailOriginale && payload.salaEmailOriginale !== payload.salaEmail) {
+          clearCache(`eventi_${payload.salaEmailOriginale}_${meseBooking}`);
+        }
+
+        // Se stiamo modificando una prenotazione esistente e la data/mese originale
+        // era diverso (es. spostata a un altro giorno), invalida anche la cache di
+        // provenienza: l'evento è "sparito" da lì e la vista di quel giorno/mese
+        // non deve continuare a mostrarlo dalla cache.
+        if (eventoInModifica?.start) {
+          const dataOriginale = eventoInModifica.start;
+          const salaOriginale = payload.salaEmailOriginale || payload.salaEmail;
+          const meseOriginale = dataOriginale.toISOString().slice(0, 7);
+          const giornoOriginale = dataOriginale.toISOString().slice(0, 10);
+
+          if (meseOriginale !== meseBooking) {
+            clearCache(`eventi_${salaOriginale}_${meseOriginale}`);
+          }
+          if (giornoOriginale !== giornoBooking) {
+            clearCache(`eventi_globali_${giornoOriginale}`);
+          }
         }
       }
       
@@ -113,9 +132,17 @@ function App() {
       }
       
       try {
-        await api.cancellaPrenotazione(id, emailSala, tipoCancellazione);
+        await api.cancellaPrenotazione(id, emailSala, tipoCancellazione, evento?.resource?.seriesMasterId);
         
-        if (evento?.start) {
+        if (tipoCancellazione === "SERIE") {
+          // Cancellando l'intera serie potremmo toccare mesi/giorni diversi da
+          // quello dell'occorrenza cliccata: invalidiamo in blocco, come per la
+          // creazione/modifica di una serie (stesso motivo: non possiamo
+          // calcolare con precisione tutte le date coinvolte lato frontend).
+          clearCacheByPrefix(`eventi_${emailSala}_`);
+          clearCacheByPrefix(`eventi_globali_`);
+        } else if (evento?.start) {
+          // SINGOLA occorrenza: tocca una sola data, invalidazione precisa
           const meseEvento = evento.start.toISOString().slice(0, 7);
           const giornoEvento = evento.start.toISOString().slice(0, 10);
           clearCache(`eventi_${emailSala}_${meseEvento}`);
