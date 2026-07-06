@@ -54,3 +54,27 @@ export function clearCache(key) {
     console.warn("Impossibile rimuovere da sessionStorage:", e);
   }
 }
+
+/**
+ * Rimuove dalla cache tutte le chiavi che iniziano con il prefisso indicato.
+ * Utile quando non si conoscono a priori tutte le chiavi coinvolte da
+ * un'operazione — tipicamente una serie ricorrente, che può toccare
+ * più mesi/giorni diversi (impossibile calcolarli con precisione lato
+ * frontend senza duplicare la logica di espansione della ricorrenza,
+ * che vive correttamente solo sul backend).
+ * @param {string} prefix
+ */
+export function clearCacheByPrefix(prefix) {
+  try {
+    const chiaviDaRimuovere = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith(prefix)) {
+        chiaviDaRimuovere.push(key);
+      }
+    }
+    chiaviDaRimuovere.forEach(key => sessionStorage.removeItem(key));
+  } catch (e) {
+    console.warn("Impossibile pulire la cache per prefisso:", prefix, e);
+  }
+}
