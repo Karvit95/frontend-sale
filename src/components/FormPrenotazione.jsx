@@ -14,7 +14,6 @@ const TIPI_RICORRENZA = [
   { value: "daily", label: "Giornaliera" },
   { value: "weekly", label: "Settimanale" },
   { value: "monthly", label: "Mensile" },
-  { value: "yearly", label: "Annuale" },
 ];
 
 const FormPrenotazione = ({ 
@@ -79,10 +78,18 @@ const FormPrenotazione = ({
                            || eventoDaModificare.resource?.salaEmail;
       setSala(emailSalaEvento || salaSelezionata || "");
 
-      // Reset campi ricorrenza (in modifica non si cambia pattern)
-      setPattern("");
-      setGiorniSettimana([]);
-      setDataFine("");
+      // In modifica di una serie ricorrente, preserva il pattern originale
+      // per poter reinviare la ricorrenza al backend (altrimenti il PATCH
+      // cancellerebbe la ricorrenza dall'evento master).
+      if (eRicorrente) {
+        setPattern(eventoDaModificare.resource?.pattern || "");
+        setGiorniSettimana([]);
+        setDataFine("");
+      } else {
+        setPattern("");
+        setGiorniSettimana([]);
+        setDataFine("");
+      }
 
     } else if (isOpen) {
       setTitolo("");
@@ -201,6 +208,7 @@ const FormPrenotazione = ({
               value={giorno} 
               onChange={(e) => setGiorno(e.target.value)} 
               required 
+              disabled={mostraSceltaModifica && tipoModifica === "SERIE"}
             />
           </div>
 
@@ -242,8 +250,8 @@ const FormPrenotazione = ({
             </select>
           </div>
 
-          {/* Sezione ricorrenza - visibile solo in creazione */}
-          {!eventoDaModificare && (
+          {/* Sezione ricorrenza - visibile in creazione o in modifica SERIE */}
+          {(!eventoDaModificare || (eventoDaModificare && pattern)) && (
             <>
               <hr style={{ margin: "16px 0" }} />
               <div className="form-group">
@@ -252,6 +260,7 @@ const FormPrenotazione = ({
                   className="form-select"
                   value={pattern} 
                   onChange={(e) => setPattern(e.target.value)}
+                  disabled={!!eventoDaModificare}
                 >
                   {TIPI_RICORRENZA.map((tipo) => (
                     <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
@@ -271,6 +280,7 @@ const FormPrenotazione = ({
                               type="checkbox"
                               checked={giorniSettimana.includes(g.value)}
                               onChange={() => toggleGiorno(g.value)}
+                              disabled={!!eventoDaModificare}
                             />
                             {g.label}
                           </label>

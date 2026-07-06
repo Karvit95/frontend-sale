@@ -190,20 +190,13 @@ function App() {
   useEffect(() => {
     let smontato = false;
     if (accounts.length > 0) {
-      
-      // Controlla cache TTL in sessionStorage
-      const cacheSale = getFromCache("cache_sale");
-      if (cacheSale) {
-        setSale(cacheSale);
-        if (cacheSale.length > 0) setSalaSelezionata(cacheSale[0].email);
-        return; // Salta la chiamata API
-      }
-      
+      // Le sale vengono sempre ricaricate da Graph a ogni mount del componente
+      // (senza cache) per garantire che le nuove sale aggiunte su Exchange
+      // siano immediatamente visibili — anche se l'utente non ha fatto F5.
       setLoading(true);
       api.getSale()
       .then((data) => {
         if (smontato) return;
-        setInCache("cache_sale", data);
         setSale(data);
         if (data.length > 0) setSalaSelezionata(data[0].email); 
       })
