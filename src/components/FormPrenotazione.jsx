@@ -130,7 +130,15 @@ const FormPrenotazione = ({
     };
 
     // Aggiungi campi ricorrenza se attiva
-    if (pattern) {
+    // MA se stiamo modificando una SINGOLA occorrenza con cambio sala, NON includere
+    // la ricorrenza — altrimenti creerebbe una nuova serie nella nuova sala invece
+    // di un singolo evento.
+    const isSingleOccurrenceWithRoomChange = eventoDaModificare && 
+        tipoModifica === "SINGOLA" && 
+        sala !== (eventoDaModificare.resource?.salaEmail 
+                  || eventoDaModificare.resource?.location?.locationEmailAddress);
+
+    if (pattern && !isSingleOccurrenceWithRoomChange) {
       payload.pattern = pattern;
       payload.intervallo = 1; // sempre 1
       payload.dataFine = dataFine;
