@@ -210,6 +210,14 @@ function App() {
     return () => { smontato = true; };
   }, [accounts, instance]);
 
+  const handleRicarica = () => {
+    const cacheKey = vistaGlobale
+      ? `eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`
+      : `eventi_${salaSelezionata}_${dataCorrente.toISOString().slice(0, 7)}`;
+    clearCache(cacheKey);
+    setTriggerAggiornamento(prev => prev + 1);
+  };
+
   useEffect(() => {
     let smontato = false;
     if (accounts.length > 0 && (salaSelezionata || vistaGlobale)) {
@@ -229,21 +237,17 @@ function App() {
         ? `eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`
         : `eventi_${salaSelezionata}_${dataCorrente.toISOString().slice(0, 7)}`;
 
-      // Controlla cache TTL
+      // Stale-While-Revalidate: se abbiamo eventi in cache, mostriamoli subito
+      // per dare reattività immediata alla UI, ma NON saltiamo la chiamata API:
+      // la fetch parte sempre in background per sincronizzare modifiche da Outlook/Exchange.
       const cacheEventi = getFromCache(cacheKey);
       if (cacheEventi) {
-        // JSON.stringify (fatto da setInCache) serializza i Date in stringhe ISO,
-        // e JSON.parse (fatto da getFromCache) non li "resuscita" automaticamente.
-        // Senza questa conversione, react-big-calendar riceverebbe stringhe al posto
-        // di oggetti Date e andrebbe in errore (es. su .getHours()).
         const eventiRipristinati = cacheEventi.map(evento => ({
           ...evento,
           start: new Date(evento.start),
           end: new Date(evento.end),
         }));
         setEventi(eventiRipristinati);
-        setLoadingEventi(false);
-        return; // Salta la chiamata API
       }
       
       const fetchEventi = vistaGlobale
@@ -268,7 +272,12 @@ function App() {
         setEventi(eventiFormattati);
       })
       .catch((err) => {
-        if (!smontato) console.error(err);
+        if (!smontato) {
+          console.error("Errore fetch eventi:", err);
+          if (!cacheEventi) {
+            mostraNotifica("Errore recupero eventi: " + err.message, "error");
+          }
+        }
       })
       .finally(() => {
         if (!smontato) setLoadingEventi(false);
@@ -345,6 +354,14 @@ function App() {
                       </select>
                     </>
                   )}
+                  <button 
+                    className="btn-outline btn-refresh" 
+                    onClick={handleRicarica}
+                    disabled={loadingEventi}
+                    title="Forza l'aggiornamento e sincronizza con Outlook / Microsoft 365"
+                  >
+                    🔄 {loadingEventi ? "Sincronizzazione..." : "Aggiorna"}
+                  </button>
                   {loadingEventi && <span className="text-loading">Aggiornamento... ⏳</span>}
                 </div>
                 

@@ -73,6 +73,19 @@ body {
   background-color: #f3f2f1;
 }
 
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  transition: all 0.2s ease;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .input-label {
   font-size: 1.1rem;
   font-weight: bold;

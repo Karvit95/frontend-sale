@@ -1,6 +1,6 @@
 // cacheWithTTL.js — Cache in sessionStorage con Time-To-Live configurabile
-// TTL predefinito: 15 minuti (900.000 ms)
-const TTL_DEFAULT = 15 * 60 * 1000;
+// TTL predefinito: 2 minuti (120.000 ms) per garantire freschezza con Outlook
+const TTL_DEFAULT = 2 * 60 * 1000;
 
 /**
  * Legge un valore dalla cache. Se scaduto o assente, restituisce null.
