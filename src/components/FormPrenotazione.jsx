@@ -39,6 +39,7 @@ const FormPrenotazione = ({
 
   const [tipoModifica, setTipoModifica] = useState("SERIE"); // SERIE o SINGOLA per modifica
   const [mostraSceltaModifica, setMostraSceltaModifica] = useState(false);
+  const [salvataggioInCorso, setSalvataggioInCorso] = useState(false);
 
   useEffect(() => {
     if (eventoDaModificare && isOpen) {
@@ -56,13 +57,14 @@ const FormPrenotazione = ({
       setDescrizione(eventoDaModificare.resource?.descrizione || "");
       
       if (eventoDaModificare.start && eventoDaModificare.end) {
+        const toLocalDate = (val) => (val instanceof Date ? val : new Date(val));
         const formatDate = (date) => {
-          if (typeof date === 'string') return date;
-          const year = date.getFullYear();
-          const month = String(date.getMonth() + 1).padStart(2, '0');
-          const day = String(date.getDate()).padStart(2, '0');
-          const hours = String(date.getHours()).padStart(2, '0');
-          const minutes = String(date.getMinutes()).padStart(2, '0');
+          const d = toLocalDate(date);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          const hours = String(d.getHours()).padStart(2, '0');
+          const minutes = String(d.getMinutes()).padStart(2, '0');
           return `${year}-${month}-${day}T${hours}:${minutes}`;
         };
 
@@ -98,6 +100,7 @@ const FormPrenotazione = ({
       setOraInizio("");
       setOraFine("");
       setSala(salaSelezionata || (sale.length > 0 ? sale[0].email : ""));
+
       // Reset ricorrenza
       setPattern("");
       setGiorniSettimana([]);
@@ -115,47 +118,46 @@ const FormPrenotazione = ({
     );
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const payload = { 
-        titolo, 
-        descrizione,
-        start: `${giorno}T${oraInizio}:00`, 
-        end: `${giorno}T${oraFine}:00`, 
-        salaEmail: sala,
-        ...(eventoDaModificare && { 
-            salaEmailOriginale: eventoDaModificare.resource?.salaEmail 
-                              || eventoDaModificare.resource?.location?.locationEmailAddress
-        })
-    };
+    if (salvataggioInCorso) return;
+    setSalvataggioInCorso(true);
+    try {
+      const payload = { 
+          titolo, 
+          descrizione,
+          start: `${giorno}T${oraInizio}:00`, 
+          end: `${giorno}T${oraFine}:00`, 
+          salaEmail: sala,
+          ...(eventoDaModificare && { 
+              salaEmailOriginale: eventoDaModificare.resource?.salaEmail 
+                                || eventoDaModificare.resource?.location?.locationEmailAddress
+          })
+      };
 
-    // Aggiungi campi ricorrenza se attiva
-    // MA se stiamo modificando una SINGOLA occorrenza con cambio sala, NON includere
-    // la ricorrenza — altrimenti creerebbe una nuova serie nella nuova sala invece
-    // di un singolo evento.
-    const isSingleOccurrenceWithRoomChange = eventoDaModificare && 
-        tipoModifica === "SINGOLA" && 
-        sala !== (eventoDaModificare.resource?.salaEmail 
-                  || eventoDaModificare.resource?.location?.locationEmailAddress);
+      // Se stiamo modificando una SINGOLA occorrenza, NON includiamo il pattern di ricorrenza:
+      // deve essere trattata/modificata come singola eccezione o spostata come singolo evento
+      const isSingleOccurrence = eventoDaModificare && tipoModifica === "SINGOLA";
 
-    if (pattern && !isSingleOccurrenceWithRoomChange) {
-      payload.pattern = pattern;
-      payload.intervallo = 1; // sempre 1
-      payload.dataFine = dataFine;
-      if (pattern === "weekly") {
-        payload.giorniSettimana = giorniSettimana;
+      if (pattern && !isSingleOccurrence) {
+        payload.pattern = pattern;
+        payload.intervallo = 1; // sempre 1
+        payload.dataFine = dataFine;
+        if (pattern === "weekly") {
+          payload.giorniSettimana = giorniSettimana;
+        }
       }
-    }
 
-    // Se stiamo modificando un evento ricorrente, indica il tipo e l'ID del series
-    // master: senza quest'ultimo, "modifica tutta la serie" toccherebbe solo
-    // l'occorrenza su cui hai cliccato (in Graph l'effetto dipende da QUALE ID usi).
-    if (eventoDaModificare && mostraSceltaModifica) {
-      payload.tipoModifica = tipoModifica;
-      payload.seriesMasterId = eventoDaModificare.resource?.seriesMasterId;
-    }
+      // Se stiamo modificando un evento ricorrente, indica il tipo e l'ID del series master
+      if (eventoDaModificare && mostraSceltaModifica) {
+        payload.tipoModifica = tipoModifica;
+        payload.seriesMasterId = eventoDaModificare.resource?.seriesMasterId;
+      }
 
-    onSalva(payload, eventoDaModificare?.id);
+      await onSalva(payload, eventoDaModificare?.id);
+    } finally {
+      setSalvataggioInCorso(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -312,8 +314,8 @@ const FormPrenotazione = ({
             </>
           )}
           
-          <button type="submit" className="btn-primary" style={{ marginTop: "16px" }}>
-            {eventoDaModificare ? "Aggiorna Prenotazione" : "Prenota Sala"}
+          <button type="submit" className="btn-primary" disabled={salvataggioInCorso} style={{ marginTop: "16px" }}>
+            {salvataggioInCorso ? "Salvataggio in corso... ⏳" : (eventoDaModificare ? "Aggiorna Prenotazione" : "Prenota Sala")}
           </button>
         </form>
       </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMsal } from "@azure/msal-react";
 import { loginRequest } from "./authConfig";
-import { startOfMonth, endOfMonth, startOfDay, endOfDay } from 'date-fns';
+import { startOfMonth, endOfMonth, startOfDay, endOfDay, format } from 'date-fns';
 
 import Calendario from "./components/Calendario";
 import Sidebar from "./components/Sidebar";
@@ -9,6 +9,12 @@ import Header from "./components/Header";
 import { api } from "./services/api";
 import { getFromCache, setInCache, clearCache, clearCacheByPrefix } from "./services/cacheWithTTL";
 import FormPrenotazione from "./components/FormPrenotazione";
+
+// Helper per generazione chiavi cache immuni da shift di fuso orario UTC
+const getMeseCacheKey = (salaEmail, date) =>
+  `eventi_${salaEmail}_${format(date, "yyyy-MM")}`;
+const getGiornoCacheKey = (date) =>
+  `eventi_globali_${format(date, "yyyy-MM-dd")}`;
 
 function App() {
   const { instance, accounts, inProgress } = useMsal();
@@ -69,15 +75,15 @@ function App() {
         // giorno/mese diverso da quello visualizzato in quel momento, la cache
         // di quel giorno/mese non verrebbe mai invalidata.
         const dataBooking = new Date(payload.start);
-        const meseBooking = dataBooking.toISOString().slice(0, 7);
-        const giornoBooking = dataBooking.toISOString().slice(0, 10);
+        const meseBooking = format(dataBooking, "yyyy-MM");
+        const giornoBooking = format(dataBooking, "yyyy-MM-dd");
 
-        clearCache(`eventi_${payload.salaEmail}_${meseBooking}`);
-        clearCache(`eventi_globali_${giornoBooking}`);
+        clearCache(getMeseCacheKey(payload.salaEmail, dataBooking));
+        clearCache(getGiornoCacheKey(dataBooking));
 
         // Se la sala è cambiata, invalida anche la cache della sala di provenienza
         if (payload.salaEmailOriginale && payload.salaEmailOriginale !== payload.salaEmail) {
-          clearCache(`eventi_${payload.salaEmailOriginale}_${meseBooking}`);
+          clearCache(getMeseCacheKey(payload.salaEmailOriginale, dataBooking));
         }
 
         // Se stiamo modificando una prenotazione esistente e la data/mese originale
@@ -85,16 +91,16 @@ function App() {
         // provenienza: l'evento è "sparito" da lì e la vista di quel giorno/mese
         // non deve continuare a mostrarlo dalla cache.
         if (eventoInModifica?.start) {
-          const dataOriginale = eventoInModifica.start;
+          const dataOriginale = new Date(eventoInModifica.start);
           const salaOriginale = payload.salaEmailOriginale || payload.salaEmail;
-          const meseOriginale = dataOriginale.toISOString().slice(0, 7);
-          const giornoOriginale = dataOriginale.toISOString().slice(0, 10);
+          const meseOriginale = format(dataOriginale, "yyyy-MM");
+          const giornoOriginale = format(dataOriginale, "yyyy-MM-dd");
 
           if (meseOriginale !== meseBooking) {
-            clearCache(`eventi_${salaOriginale}_${meseOriginale}`);
+            clearCache(getMeseCacheKey(salaOriginale, dataOriginale));
           }
           if (giornoOriginale !== giornoBooking) {
-            clearCache(`eventi_globali_${giornoOriginale}`);
+            clearCache(getGiornoCacheKey(dataOriginale));
           }
         }
       }
@@ -143,10 +149,9 @@ function App() {
           clearCacheByPrefix(`eventi_globali_`);
         } else if (evento?.start) {
           // SINGOLA occorrenza: tocca una sola data, invalidazione precisa
-          const meseEvento = evento.start.toISOString().slice(0, 7);
-          const giornoEvento = evento.start.toISOString().slice(0, 10);
-          clearCache(`eventi_${emailSala}_${meseEvento}`);
-          clearCache(`eventi_globali_${giornoEvento}`);
+          const dataEv = new Date(evento.start);
+          clearCache(getMeseCacheKey(emailSala, dataEv));
+          clearCache(getGiornoCacheKey(dataEv));
         }
         
         setTriggerAggiornamento(prev => prev + 1); 
@@ -165,14 +170,12 @@ function App() {
       await api.cancellaPrenotazione(id, emailSala);
       
       if (evento?.start) {
-        const meseEvento = evento.start.toISOString().slice(0, 7);
-        const giornoEvento = evento.start.toISOString().slice(0, 10);
-        clearCache(`eventi_${emailSala}_${meseEvento}`);
-        clearCache(`eventi_globali_${giornoEvento}`);
+        const dataEv = new Date(evento.start);
+        clearCache(getMeseCacheKey(emailSala, dataEv));
+        clearCache(getGiornoCacheKey(dataEv));
       } else {
-        const meseCorrente = dataCorrente.toISOString().slice(0, 7);
-        clearCache(`eventi_${emailSala}_${meseCorrente}`);
-        clearCache(`eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`);
+        clearCache(getMeseCacheKey(emailSala, dataCorrente));
+        clearCache(getGiornoCacheKey(dataCorrente));
       }
       
       setTriggerAggiornamento(prev => prev + 1); 
@@ -212,8 +215,8 @@ function App() {
 
   const handleRicarica = () => {
     const cacheKey = vistaGlobale
-      ? `eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`
-      : `eventi_${salaSelezionata}_${dataCorrente.toISOString().slice(0, 7)}`;
+      ? getGiornoCacheKey(dataCorrente)
+      : getMeseCacheKey(salaSelezionata, dataCorrente);
     clearCache(cacheKey);
     setTriggerAggiornamento(prev => prev + 1);
   };
@@ -232,10 +235,10 @@ function App() {
         fine = endOfMonth(dataCorrente).toISOString();
       }
 
-      // Chiave cache composita: dipende da sala + data + vista
+      // Chiave cache composita: dipende da sala + data + vista (senza shift UTC)
       const cacheKey = vistaGlobale
-        ? `eventi_globali_${dataCorrente.toISOString().slice(0, 10)}`
-        : `eventi_${salaSelezionata}_${dataCorrente.toISOString().slice(0, 7)}`;
+        ? getGiornoCacheKey(dataCorrente)
+        : getMeseCacheKey(salaSelezionata, dataCorrente);
 
       // Stale-While-Revalidate: se abbiamo eventi in cache, mostriamoli subito
       // per dare reattività immediata alla UI, ma NON saltiamo la chiamata API:
@@ -248,6 +251,8 @@ function App() {
           end: new Date(evento.end),
         }));
         setEventi(eventiRipristinati);
+      } else {
+        setEventi([]); // Resetta per prevenire visualizzazione spuria della sala precedente
       }
       
       const fetchEventi = vistaGlobale
@@ -274,9 +279,12 @@ function App() {
       .catch((err) => {
         if (!smontato) {
           console.error("Errore fetch eventi:", err);
-          if (!cacheEventi) {
-            mostraNotifica("Errore recupero eventi: " + err.message, "error");
-          }
+          mostraNotifica(
+            cacheEventi
+              ? "Attenzione: sincronizzazione con Outlook fallita. I dati visualizzati potrebbero non essere aggiornati."
+              : "Errore recupero eventi: " + err.message,
+            "error"
+          );
         }
       })
       .finally(() => {

@@ -2,18 +2,34 @@
 // TTL predefinito: 2 minuti (120.000 ms) per garantire freschezza con Outlook
 const TTL_DEFAULT = 2 * 60 * 1000;
 
+// Regex ISO-8601 per intercettare date serializzate in JSON
+const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$/;
+
+/**
+ * Funzione reviver per JSON.parse: ricostruisce oggetti Date nativi
+ * a partire dalle stringhe ISO serializzate (in particolare per i campi start ed end).
+ */
+export function dateReviver(key, value) {
+  if (typeof value === "string" && (key === "start" || key === "end" || ISO_DATE_REGEX.test(value))) {
+    const d = new Date(value);
+    if (!isNaN(d.getTime())) return d;
+  }
+  return value;
+}
+
 /**
  * Legge un valore dalla cache. Se scaduto o assente, restituisce null.
  * @param {string} key — Chiave univoca per il dato
- * @param {number} ttlMs — Durata di validità in millisecondi (default 15 min)
+ * @param {number} ttlMs — Durata di validità in millisecondi (default 2 min)
+ * @param {function} reviver — Funzione reviver per JSON.parse (default: dateReviver)
  * @returns {any|null} — Dato parsato oppure null
  */
-export function getFromCache(key, ttlMs = TTL_DEFAULT) {
+export function getFromCache(key, ttlMs = TTL_DEFAULT, reviver = dateReviver) {
   try {
     const raw = sessionStorage.getItem(key);
     if (!raw) return null;
 
-    const { data, timestamp } = JSON.parse(raw);
+    const { data, timestamp } = JSON.parse(raw, reviver);
 
     // Verifica scadenza
     if (Date.now() - timestamp > ttlMs) {

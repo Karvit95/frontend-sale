@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import { format, parse, startOfWeek, getDay, startOfMonth, getDaysInMonth, subMonths, addMonths, subDays, addDays } from 'date-fns';
 import { it } from 'date-fns/locale';
@@ -64,6 +65,7 @@ const CustomToolbar = ({ date, onNavigate, vistaGlobale }) => {
               value={date.getMonth()}
               onChange={(e) => {
                 const nuovaData = new Date(date);
+                nuovaData.setDate(1); // Previene overflow per mesi con < 31 giorni
                 nuovaData.setMonth(parseInt(e.target.value, 10));
                 onNavigate('DATE', nuovaData);
               }}
@@ -118,10 +120,10 @@ const Calendario = ({ eventi, data, onNavigate, onEdit, onDelete, vistaGlobale, 
     }));
   }, [vistaGlobale, sale]);
 
-  // Rimuove i tag HTML dalla descrizione (il backend restituisce HTML dal corpo Exchange)
+  // Rimuove i tag HTML dalla descrizione in modo sicuro tramite DOMPurify
   const stripHtml = (html) => {
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-    return doc.body.textContent || '';
+    if (!html) return '';
+    return DOMPurify.sanitize(html, { ALLOWED_TAGS: [] });
   };
 
   // VISTA AGENDA: Mostra titolo, organizzatore e descrizione
