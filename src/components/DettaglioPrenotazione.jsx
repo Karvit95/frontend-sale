@@ -1,5 +1,16 @@
-import React from 'react';
 import DOMPurify from 'dompurify';
+
+// Hook di sicurezza globale DOMPurify contro Reverse Tabnabbing (SEC-18)
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    const href = node.getAttribute('href') || '';
+    if (!/^(https?:|mailto:)/i.test(href)) {
+      node.removeAttribute('href');
+    }
+    node.setAttribute('target', '_blank');
+    node.setAttribute('rel', 'noopener noreferrer');
+  }
+});
 
 const DettaglioPrenotazione = ({ isOpen, onClose, evento, onEdit, onDelete }) => {
   if (!isOpen || !evento) return null;
