@@ -24,5 +24,20 @@ export default defineConfig({
   },
   preview: {
     headers: securityHeaders
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('@azure/msal')) return 'vendor-msal';
+            if (id.includes('react-big-calendar') || id.includes('date-fns') || id.includes('moment')) {
+              return 'vendor-calendar';
+            }
+            return 'vendor';
+          }
+        }
+      }
+    }
   }
 })

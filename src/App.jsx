@@ -221,6 +221,22 @@ function App() {
     setTriggerAggiornamento(prev => prev + 1);
   };
 
+  const handleRiprovaCaricamentoSale = () => {
+    setErrore(null);
+    setLoading(true);
+    api.getSale()
+      .then((data) => {
+        setSale(data);
+        if (data.length > 0) setSalaSelezionata(data[0].email);
+      })
+      .catch((err) => {
+        setErrore(err.message);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
     let smontato = false;
     if (accounts.length > 0 && (salaSelezionata || vistaGlobale)) {
@@ -339,7 +355,14 @@ function App() {
               </div>
             )}
             {loading && <p>Caricamento sale...</p>}
-            {errore && <p className="text-error">Errore: {errore}</p>}
+            {errore && (
+              <div className="error-retry-container">
+                <p className="text-error">Errore: {errore}</p>
+                <button type="button" className="btn-outline" onClick={handleRiprovaCaricamentoSale}>
+                  🔄 Riprova caricamento sale
+                </button>
+              </div>
+            )}
             
             {!loading && !errore && sale.length > 0 && (
               <div className="calendar-card">
