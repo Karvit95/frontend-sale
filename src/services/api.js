@@ -33,7 +33,19 @@ export const api = {
       {},
       "Errore durante il recupero delle prenotazioni di tutte le sale"
     );
-    return response.json();
+    const data = await response.json();
+    if (Array.isArray(data)) {
+      return {
+        prenotazioni: data,
+        saleNonDisponibili: [],
+        parziale: false,
+      };
+    }
+    return {
+      prenotazioni: Array.isArray(data?.prenotazioni) ? data.prenotazioni : [],
+      saleNonDisponibili: Array.isArray(data?.saleNonDisponibili) ? data.saleNonDisponibili : [],
+      parziale: Boolean(data?.parziale),
+    };
   },
 
   creaPrenotazione: async (datiPrenotazione) => {

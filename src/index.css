@@ -112,6 +112,45 @@ body {
   color: #d13438;
 }
 
+/* --- BANNER WARNING (RISULTATI PARZIALI VISTA GLOBALE) --- */
+.banner-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  background-color: #fff4ce;
+  border: 1px solid #fce100;
+  border-left: 5px solid #797673;
+  color: #323130;
+  padding: 12px 18px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.banner-warning span {
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.btn-retry-banner {
+  padding: 6px 14px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #323130;
+  background-color: #ffffff;
+  border: 1px solid #8a8886;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-retry-banner:hover {
+  background-color: #f3f2f1;
+  border-color: #323130;
+}
+
 /* --- TOAST NOTIFICHE --- */
 .toast {
   position: fixed;

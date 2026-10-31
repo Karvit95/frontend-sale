@@ -40,6 +40,7 @@ function App() {
   const [eventoInModifica, setEventoInModifica] = useState(null);
 
   const [vistaGlobale, setVistaGlobale] = useState(false);
+  const [saleNonCaricate, setSaleNonCaricate] = useState([]);
 
   const handleLogin = () => instance.loginRedirect(loginRequest).catch(e => console.error(e));
   const handleLogout = () => instance.logoutRedirect().catch(e => console.error(e));
@@ -241,6 +242,7 @@ function App() {
     let smontato = false;
     if (accounts.length > 0 && (salaSelezionata || vistaGlobale)) {
       setLoadingEventi(true);
+      setSaleNonCaricate([]);
       
       let inizio, fine;
       if (vistaGlobale) {
@@ -278,8 +280,8 @@ function App() {
       fetchEventi
       .then((data) => {
         if (smontato) return;
-        console.log("DATI RICEVUTI DAL BACKEND:", data);
-        const eventiFormattati = data.map(evento => {
+        const rawPrenotazioni = vistaGlobale ? data.prenotazioni : data;
+        const eventiFormattati = (Array.isArray(rawPrenotazioni) ? rawPrenotazioni : []).map(evento => {
           return { 
             id: evento.id, 
             title: evento.titolo, 
@@ -289,11 +291,24 @@ function App() {
             resource: evento 
           };
         });
-        setInCache(cacheKey, eventiFormattati);
+
+        if (vistaGlobale && data.parziale) {
+          const nonCaricate = (data.saleNonDisponibili || []).map(snd => {
+            const found = sale.find(s => s.email?.toLowerCase() === snd.salaEmail?.toLowerCase());
+            return found?.nome || snd.salaNome || snd.salaEmail;
+          });
+          setSaleNonCaricate(nonCaricate);
+          // Risultato parziale: NON memorizziamo in cache per non persistere dati incompleti
+        } else {
+          setSaleNonCaricate([]);
+          setInCache(cacheKey, eventiFormattati);
+        }
+
         setEventi(eventiFormattati);
       })
       .catch((err) => {
         if (!smontato) {
+          setSaleNonCaricate([]);
           console.error("Errore fetch eventi:", err);
           mostraNotifica(
             cacheEventi
@@ -308,7 +323,7 @@ function App() {
       });
     }
     return () => { smontato = true; };
-  }, [accounts, instance, salaSelezionata, dataCorrente, triggerAggiornamento, vistaGlobale]);
+  }, [accounts, instance, salaSelezionata, dataCorrente, triggerAggiornamento, vistaGlobale, sale]);
 
   const currentAccount = accounts[0];
   const ruoliUtente = currentAccount?.idTokenClaims?.roles || [];
@@ -373,14 +388,14 @@ function App() {
                       <span className="badge-globale">
                         📊 Vista Globale (Tutte le Sale)
                       </span>
-                      <button className="btn-outline" onClick={() => setVistaGlobale(false)}>
+                      <button className="btn-outline" onClick={() => { setVistaGlobale(false); setSaleNonCaricate([]); }}>
                         Torna alla singola sala
                       </button>
                     </>
                   ) : (
                     <>
                       <label className="input-label">Seleziona la Sala:</label>
-                      <select className="select-sala" value={salaSelezionata} onChange={(e) => { setVistaGlobale(false); setSalaSelezionata(e.target.value); }}>
+                      <select className="select-sala" value={salaSelezionata} onChange={(e) => { setVistaGlobale(false); setSaleNonCaricate([]); setSalaSelezionata(e.target.value); }}>
                         {sale.map((s) => <option key={s.id} value={s.email}>{s.nome}</option>)}
                       </select>
                     </>
@@ -395,6 +410,21 @@ function App() {
                   </button>
                   {loadingEventi && <span className="text-loading">Aggiornamento... ⏳</span>}
                 </div>
+
+                {vistaGlobale && saleNonCaricate.length > 0 && (
+                  <div role="status" className="banner-warning">
+                    <span>
+                      Alcune sale non sono state caricate ({saleNonCaricate.join(", ")}): gli eventi mostrati potrebbero essere incompleti.
+                    </span>
+                    <button 
+                      type="button" 
+                      className="btn-retry-banner"
+                      onClick={() => setTriggerAggiornamento(prev => prev + 1)}
+                    >
+                      Riprova
+                    </button>
+                  </div>
+                )}
                 
                 <Calendario 
                   eventi={eventi} 
