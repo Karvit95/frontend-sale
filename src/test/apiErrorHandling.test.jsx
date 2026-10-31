@@ -4,6 +4,8 @@ import { authFetch } from '../services/authFetch';
 import App from '../App';
 import { api } from '../services/api';
 
+const DEFAULT_ADMIN_ROLE = ['RoomBooking', 'Admin'].join('.');
+
 // Riferimenti STABILI per evitare cicli infiniti di re-render nei hook useEffect
 const mockMsalInstanceObj = {
   loginRedirect: vi.fn(),
@@ -26,7 +28,7 @@ const mockAccountsList = [
   {
     username: 'mario.rossi@szn.it',
     name: 'Mario Rossi',
-    idTokenClaims: { roles: ['RoomBooking.Admin'] },
+    idTokenClaims: { roles: [DEFAULT_ADMIN_ROLE] },
   },
 ];
 

@@ -1,16 +1,24 @@
-# React + Vite
+# Agenda Sale SZN - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Applicazione frontend React 19 + Vite per la consultazione e gestione delle prenotazioni sale riunioni della Stazione Zoologica Anton Dohrn (SZN).
 
-Currently, two official plugins are available:
+## Variabili d'Ambiente
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Copia il file `.env.example` in `.env` (o `.env.local`) per personalizzare la configurazione:
 
-## React Compiler
+| Variabile | Descrizione | Default |
+|---|---|---|
+| `VITE_API_BASE_URL` | Endpoint base delle API backend | `/api` |
+| `VITE_ADMIN_ROLE` | Ruolo app claim (Entra ID) per i privilegi admin nella UI | `RoomBooking.Admin` |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+> [!IMPORTANT]
+> **Sicurezza e Autorizzazione:**
+> La variabile `VITE_ADMIN_ROLE` controlla esclusivamente la visibilità condizionale dei pulsanti e controlli nell'interfaccia utente (come il pulsante *Nuova Prenotazione* nella sidebar).
+> L'autorizzazione reale per tutte le operazioni di scrittura e modifica (creazione, modifica, cancellazione) è sempre verificata e applicata in modo non scavalcabile dal backend Spring Boot tramite la configurazione `app.admin-role`.
 
-## Expanding the ESLint configuration
+## Script Disponibili
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `npm run dev`: avvia il server di sviluppo Vite
+- `npm run build`: compila l'applicazione per la produzione
+- `npm run lint`: esegue la verifica statica ESLint
+- `npm test`: esegue la suite di test automatizzati con Vitest

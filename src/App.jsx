@@ -16,6 +16,8 @@ const getMeseCacheKey = (salaEmail, date) =>
 const getGiornoCacheKey = (date) =>
   `eventi_globali_${format(date, "yyyy-MM-dd")}`;
 
+const ADMIN_ROLE = import.meta.env.VITE_ADMIN_ROLE || "RoomBooking.Admin";
+
 function App() {
   const { instance, accounts, inProgress } = useMsal();
   
@@ -327,7 +329,8 @@ function App() {
 
   const currentAccount = accounts[0];
   const ruoliUtente = currentAccount?.idTokenClaims?.roles || [];
-  const isAdmin = ruoliUtente.includes("RoomBooking.Admin");
+  const adminRole = import.meta.env.VITE_ADMIN_ROLE || ADMIN_ROLE;
+  const isAdmin = ruoliUtente.includes(adminRole);
 
   if (inProgress === "startup" || inProgress === "handleRedirect" || inProgress === "login") return <div className="fullscreen-message"><h2>Verifica... ⏳</h2></div>;
   if (inProgress === "logout") return <div className="fullscreen-message"><h2>Disconnessione... 👋</h2></div>;
